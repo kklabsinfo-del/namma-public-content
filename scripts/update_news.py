@@ -158,7 +158,18 @@ def gemini_summarize(articles: list[dict[str, str]], api_key: str, model: str) -
             if not outputs:
                 raise ValueError("Gemini returned no valid summaries")
             return outputs
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, KeyError, ValueError, json.JSONDecodeError) as exc:
+        except urllib.error.HTTPError as exc:
+            detail = ""
+            try:
+                detail = exc.read().decode("utf-8", errors="replace")[:1200]
+            except Exception:
+                pass
+            last_error = RuntimeError(f"HTTP {exc.code}: {detail or exc.reason}")
+            if attempt < 2 and exc.code in {429, 500, 502, 503, 504}:
+                time.sleep(2 ** attempt)
+                continue
+            break
+        except (urllib.error.URLError, TimeoutError, KeyError, ValueError, json.JSONDecodeError) as exc:
             last_error = exc
             if attempt < 2:
                 time.sleep(2 ** attempt)
@@ -211,7 +222,7 @@ def main() -> int:
     if not api_key:
         print("Missing GEMINI_API_KEY. Add it under GitHub repository Settings > Secrets and variables > Actions.", file=sys.stderr)
         return 2
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
     existing = load_existing()
     articles = collect_articles()
     if not articles:
