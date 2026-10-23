@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import email.utils
 import hashlib
 import json
 import os
@@ -64,7 +65,14 @@ def parse_rss(xml_bytes: bytes, language: str = "en") -> list[dict[str, str]]:
         title = clean_text(node.findtext("title"), 300)
         link = (node.findtext("link") or "").strip()
         description = clean_text(node.findtext("description"), 1200)
-        pub_date = clean_text(node.findtext("pubDate"), 100)
+        raw_pub_date = clean_text(node.findtext("pubDate"), 100)
+        try:
+            parsed_date = email.utils.parsedate_to_datetime(raw_pub_date)
+            if parsed_date.tzinfo is None:
+                parsed_date = parsed_date.replace(tzinfo=dt.timezone.utc)
+            pub_date = parsed_date.astimezone(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        except (TypeError, ValueError, OverflowError):
+            pub_date = ""
         source_node = node.find("source")
         source = clean_text(source_node.text if source_node is not None else "", 120)
         if not title or not link.startswith(("https://", "http://")):
@@ -208,6 +216,11 @@ def main() -> int:
     articles = collect_articles()
     if not articles:
         print("No relevant RSS articles collected; preserving existing updates.json.")
+        return 0
+    existing_ids = {str(item.get("id")) for item in existing if isinstance(item, dict) and item.get("id")}
+    articles = [article for article in articles if article["id"] not in existing_ids]
+    if not articles:
+        print("No new stories; skipping Gemini and preserving updates.json.")
         return 0
     try:
         summaries = gemini_summarize(articles, api_key, model)
