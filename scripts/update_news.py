@@ -113,7 +113,7 @@ def gemini_summarize(articles: list[dict[str, str]], api_key: str, model: str) -
     """One Gemini request for the entire batch; the key stays in the workflow secret."""
     if not articles:
         return {}
-    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model, safe='')}:generateContent?key={urllib.parse.quote(api_key, safe='')}"
+    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model, safe='')}:generateContent"
     prompt_articles = [
         {"id": a["id"], "headline": a["title"], "publisher": a["sourceName"],
          "feed_description": a["sourceSnippet"], "source_language": a["language"]}
@@ -137,7 +137,7 @@ def gemini_summarize(articles: list[dict[str, str]], api_key: str, model: str) -
     request = urllib.request.Request(
         endpoint,
         data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
+        headers={"Content-Type": "application/json", "User-Agent": USER_AGENT, "x-goog-api-key": api_key},
         method="POST",
     )
     last_error: Exception | None = None
