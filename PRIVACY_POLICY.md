@@ -7,7 +7,7 @@ Namma Thalapathy is an independent, unofficial fan-community app. It is not affi
 
 ## Information used by the app
 
-**On-device information.** The app stores your saved Vibe Check items, recent public-content caches, your personal Home page-view count, and your daily check-in streak in local app storage. These values are displayed only for your installation; they are not a global visitor count. The app does not currently require account registration or a contact-list permission.
+**On-device information.** The app stores your saved Vibe Check items, recent public-content caches, your personal Home page-view count, your daily check-in streak, and your chosen Daily Fan Pick for the current day in local app storage. These values are displayed only for your installation; they are not a global visitor count. The app does not currently require account registration or a contact-list permission.
 
 **Optional approximate location.** If you tap **Use Location** and grant the approximate-location permission, the app may read the device's available recent coarse location to rank listed businesses near you. Location is used on-device, is not required to browse the app, and is not uploaded to an Namma Thalapathy server. You can deny or revoke permission through Android settings.
 
@@ -28,7 +28,7 @@ Users may be shown a Google consent form where required. If you do not permit th
 
 ## Storage, retention and deletion
 
-Local saved items, page views and streak values stay on your device until you clear this app's storage or uninstall the app; temporary cached files may be removed by Android earlier. This app does not maintain a remote account profile for these values. Any business-listing email you send can be requested for deletion by contacting **kklabsinfo@gmail.com**, subject to lawful retention requirements. Third-party services apply their own retention rules.
+Local saved items, Daily Fan Pick choices, page views and streak values stay on your device until you clear this app's storage or uninstall the app; temporary cached files may be removed by Android earlier. This app does not maintain a remote account profile for these values. Any business-listing email you send can be requested for deletion by contacting **kklabsinfo@gmail.com**, subject to lawful retention requirements. Third-party services apply their own retention rules.
 
 ## Security, children and changes
 
