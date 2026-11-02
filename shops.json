@@ -1,3 +1,19 @@
 {
-  "shops": []
+  "shops": [
+    {
+      "id": "nt-1",
+      "businessName": "STONE TIME",
+      "category": "GRANITES",
+      "city": "Krishnagiri",
+      "area": "Hosur",
+      "description": "India's leading granite exporter.",
+      "websiteUrl": "https://stonetimegranites.com",
+      "socialUrl": null,
+      "publicContact": null,
+      "imageUrl": null,
+      "featured": true,
+      "sponsored": true,
+      "priority": 1
+    }
+  ]
 }
