@@ -33,6 +33,40 @@ RELEVANCE_TERMS = [
 ALLOWED_CATEGORIES = {"TVK", "CINEMA", "PUBLIC_AFFAIRS", "OTHER"}
 
 
+
+# Conservative editorial selection. This is a source-linked positive fan feed,
+# not a comprehensive record of political news or independently verified reporting.
+BLOCKED_TOPICS = (
+    "alleg", "accus", "poaching", "conspiracy", "corrupt", "scam", "fraud",
+    "brib", "arrest", "police", "raid", "violence", "protest against",
+    "backlash", "slams", "attacks", "condemns", "clash", "court", "lawsuit",
+    "defection", "no confidence", "no-confidence", "vote against",
+    "resign", "crisis", "rumour", "rumor", "unverified", "fake news",
+    "நம்பிக்கையில்லா", "சர்ச்சை", "குற்றச்சாட்டு", "ஊழல்",
+    "புகார்", "கைது", "வழக்கு", "மோதல்", "கண்டனம்",
+    "கவிழுமா", "லஞ்சம்", "சதி", "தாக்குதல்", "விமர்சனம்",
+)
+CONSTRUCTIVE_TOPICS = (
+    "education", "student", "scholarship", "award", "felicitat",
+    "honour", "honor", "achievement", "community service",
+    "social service", "volunteer", "welfare", "charity", "donat",
+    "blood donation", "health camp", "medical camp", "tree plant",
+    "environment", "relief work", "public service", "assistance",
+    "helps", "helped", "initiative", "inaugurat", "support for",
+    "கல்வி", "மாணவர்", "மாணவி", "விருது", "பாராட்டு",
+    "சாதனை", "உதவி", "நலத்திட்ட", "சேவை", "மரக்கன்று",
+    "மரநடுகை", "ரத்த தான", "மருத்துவ முகாம்", "விழா",
+)
+
+def suitable_positive_story(title: str, description: str) -> bool:
+    text = (title + " " + description).casefold()
+    if not any(term.casefold() in text for term in RELEVANCE_TERMS):
+        return False
+    if any(term.casefold() in text for term in BLOCKED_TOPICS):
+        return False
+    return any(term.casefold() in text for term in CONSTRUCTIVE_TOPICS)
+
+
 def now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -78,7 +112,7 @@ def parse_rss(xml_bytes: bytes, language: str = "en") -> list[dict[str, str]]:
         if not title or not link.startswith(("https://", "http://")):
             continue
         haystack = (title + " " + description).casefold()
-        if not any(term.casefold() in haystack for term in RELEVANCE_TERMS):
+        if not suitable_positive_story(title, description):
             continue
         stable = re.sub(r"\W+", " ", title.casefold()).strip()
         item_id = hashlib.sha256((link + "|" + stable).encode("utf-8")).hexdigest()[:16]
@@ -120,7 +154,7 @@ def gemini_summarize(articles: list[dict[str, str]], api_key: str, model: str) -
         for a in articles[:MAX_ITEMS]
     ]
     prompt = (
-        "You write neutral, concise news summaries for an unofficial Tamil Nadu fan news app. "
+        "You write neutral, concise summaries for the positive, constructive TVK section of an unofficial fan app. "
         "Use only the supplied headline and feed description. Do not add facts, infer outcomes, "
         "write political persuasion, invent quotes, or claim verification. If the description is "
         "insufficient, produce a cautious one-sentence summary based only on the headline. "
@@ -194,10 +228,16 @@ def build_feed(articles: list[dict[str, str]], summaries: dict[str, dict[str, st
             old_id = str(old.get("id") or "")
             if old_id:
                 old_by_id[old_id] = old
-    merged = dict(old_by_id)
+    # Purge previously published conflict or speculative stories too.
+    merged = {
+        key: value for key, value in old_by_id.items()
+        if suitable_positive_story(str(value.get("title") or ""),
+                                   str(value.get("content") or ""))
+        and str(value.get("sourceUrl") or "").startswith("https://")
+    }
     for article in articles:
         summary = summaries.get(article["id"])
-        if not summary:
+        if not summary or not suitable_positive_story(article["title"], summary["summary"]):
             continue
         merged[article["id"]] = {
             "id": article["id"],
@@ -226,22 +266,21 @@ def main() -> int:
     existing = load_existing()
     articles = collect_articles()
     if not articles:
-        print("No relevant RSS articles collected; preserving existing updates.json.")
-        return 0
+        print("No eligible new RSS stories; updating only existing feed selection.")
     existing_ids = {str(item.get("id")) for item in existing if isinstance(item, dict) and item.get("id")}
     articles = [article for article in articles if article["id"] not in existing_ids]
     if not articles:
-        print("No new stories; skipping Gemini and preserving updates.json.")
-        return 0
-    try:
-        summaries = gemini_summarize(articles, api_key, model)
-    except Exception as exc:
-        print(f"News generation failed; preserving existing updates.json. {exc}", file=sys.stderr)
-        return 1
+        print("No new eligible stories; skipping Gemini.")
+        summaries = {}
+    else:
+        try:
+            summaries = gemini_summarize(articles, api_key, model)
+        except Exception as exc:
+            print(f"News generation failed; preserving existing updates.json. {exc}", file=sys.stderr)
+            return 1
     feed = build_feed(articles, summaries, existing)
     if not feed["updates"]:
-        print("No valid generated stories; preserving existing updates.json.", file=sys.stderr)
-        return 1
+        print("No eligible positive stories: publishing an empty feed rather than unsafe content.")
     new_content = json.dumps(feed, ensure_ascii=False, indent=2) + "\n"
     old_content = OUTPUT.read_text(encoding="utf-8") if OUTPUT.exists() else ""
     if new_content == old_content:
