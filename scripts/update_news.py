@@ -42,6 +42,8 @@ BLOCKED_TOPICS = (
     "backlash", "slams", "attacks", "condemns", "clash", "court", "lawsuit",
     "defection", "no confidence", "no-confidence", "vote against",
     "resign", "crisis", "rumour", "rumor", "unverified", "fake news",
+    "shock", "shocking", "mystery", "mysterious", "panic",
+    "அதிர்ச்சி", "மர்ம", "பதறி", "கேள்வி எழ", "எழும் கேள்வி",
     "நம்பிக்கையில்லா", "சர்ச்சை", "குற்றச்சாட்டு", "ஊழல்",
     "புகார்", "கைது", "வழக்கு", "மோதல்", "கண்டனம்",
     "கவிழுமா", "லஞ்சம்", "சதி", "தாக்குதல்", "விமர்சனம்",
@@ -57,6 +59,12 @@ CONSTRUCTIVE_TOPICS = (
     "சாதனை", "உதவி", "நலத்திட்ட", "சேவை", "மரக்கன்று",
     "மரநடுகை", "ரத்த தான", "மருத்துவ முகாம்", "விழா",
 )
+
+LOW_CONFIDENCE_PUBLISHERS = {"facebook", "instagram", "youtube", "tiktok", "x", "twitter"}
+
+def eligible_publisher(name: str) -> bool:
+    source = name.casefold().strip()
+    return bool(source) and source not in LOW_CONFIDENCE_PUBLISHERS and source != "google news source"
 
 def suitable_positive_story(title: str, description: str) -> bool:
     text = (title + " " + description).casefold()
@@ -112,7 +120,7 @@ def parse_rss(xml_bytes: bytes, language: str = "en") -> list[dict[str, str]]:
         if not title or not link.startswith(("https://", "http://")):
             continue
         haystack = (title + " " + description).casefold()
-        if not suitable_positive_story(title, description):
+        if not suitable_positive_story(title, description) or not eligible_publisher(source):
             continue
         stable = re.sub(r"\W+", " ", title.casefold()).strip()
         item_id = hashlib.sha256((link + "|" + stable).encode("utf-8")).hexdigest()[:16]
@@ -233,11 +241,12 @@ def build_feed(articles: list[dict[str, str]], summaries: dict[str, dict[str, st
         key: value for key, value in old_by_id.items()
         if suitable_positive_story(str(value.get("title") or ""),
                                    str(value.get("content") or ""))
+        and eligible_publisher(str(value.get("sourceName") or ""))
         and str(value.get("sourceUrl") or "").startswith("https://")
     }
     for article in articles:
         summary = summaries.get(article["id"])
-        if not summary or not suitable_positive_story(article["title"], summary["summary"]):
+        if not summary or not eligible_publisher(article["sourceName"]) or not suitable_positive_story(article["title"], summary["summary"]):
             continue
         merged[article["id"]] = {
             "id": article["id"],
