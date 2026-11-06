@@ -148,7 +148,9 @@ def collect_articles(fetcher=get_url) -> list[dict[str, str]]:
     return sorted(found.values(), key=lambda item: item.get("publishedAt", ""), reverse=True)
 
 
-def load_existing(path: Path = OUTPUT) -> list[dict[str, Any]]:
+def load_existing(path: Path | None = None) -> list[dict[str, Any]]:
+    # Resolve at call time so tests and alternate output paths are honored.
+    path = path if path is not None else OUTPUT
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         items = data.get("updates", []) if isinstance(data, dict) else data
