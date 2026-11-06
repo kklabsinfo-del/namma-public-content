@@ -91,8 +91,10 @@ class NewsPipelineTests(unittest.TestCase):
             "https://example.org", 503, "Service Unavailable", {},
             io.BytesIO(b'{"error":{"status":"UNAVAILABLE"}}'),
         )
-        with patch.object(update_news.urllib.request, "urlopen", side_effect=error) as fetch, \\
-             patch.object(update_news.time, "sleep") as sleep:
+        with (
+            patch.object(update_news.urllib.request, "urlopen", side_effect=error) as fetch,
+            patch.object(update_news.time, "sleep") as sleep,
+        ):
             with self.assertRaises(TemporaryGeminiUnavailable):
                 gemini_summarize([article], "fake-test-key", "test-model")
             self.assertEqual(fetch.call_count, 3)
@@ -101,15 +103,17 @@ class NewsPipelineTests(unittest.TestCase):
     def test_deferred_refresh_keeps_existing_file_unchanged(self):
         with tempfile.TemporaryDirectory() as tempdir:
             target = Path(tempdir) / "updates.json"
-            original = '{"updates":[{"id":"old"}],"generatedAt":"old"}\\n'
+            original = '{"updates":[{"id":"old"}],"generatedAt":"old"}'
             target.write_text(original, encoding="utf-8")
             article = {"id": "new", "title": "TVK Vijay education awards"}
-            with patch.object(update_news, "OUTPUT", target), \\
-                 patch.object(update_news, "load_existing", return_value=[]), \\
-                 patch.object(update_news, "collect_articles", return_value=[article]), \\
-                 patch.object(update_news, "gemini_summarize",
-                              side_effect=TemporaryGeminiUnavailable("HTTP 503")), \\
-                 patch.dict(os.environ, {"GEMINI_API_KEY": "fake-test-key"}):
+            with (
+                patch.object(update_news, "OUTPUT", target),
+                patch.object(update_news, "load_existing", return_value=[]),
+                patch.object(update_news, "collect_articles", return_value=[article]),
+                patch.object(update_news, "gemini_summarize",
+                             side_effect=TemporaryGeminiUnavailable("HTTP 503")),
+                patch.dict(os.environ, {"GEMINI_API_KEY": "fake-test-key"}),
+            ):
                 self.assertEqual(update_news.main(), 0)
             self.assertEqual(target.read_text(encoding="utf-8"), original)
 
@@ -124,10 +128,12 @@ class NewsPipelineTests(unittest.TestCase):
             }
             original = json.dumps({"updates": [old], "generatedAt": "2026-10-23T03:00:00Z"})
             target.write_text(original, encoding="utf-8")
-            with patch.object(update_news, "OUTPUT", target), \\
-                 patch.object(update_news, "load_existing", return_value=[old]), \\
-                 patch.object(update_news, "collect_articles", return_value=[]), \\
-                 patch.dict(os.environ, {"GEMINI_API_KEY": "fake-test-key"}):
+            with (
+                patch.object(update_news, "OUTPUT", target),
+                patch.object(update_news, "load_existing", return_value=[old]),
+                patch.object(update_news, "collect_articles", return_value=[]),
+                patch.dict(os.environ, {"GEMINI_API_KEY": "fake-test-key"}),
+            ):
                 self.assertEqual(update_news.main(), 0)
             self.assertEqual(target.read_text(encoding="utf-8"), original)
 
