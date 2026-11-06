@@ -1,9 +1,17 @@
+import io
 import json
+import os
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
+from unittest.mock import patch
 
-from scripts.update_news import build_feed, clean_text, parse_rss, suitable_positive_story
+from scripts import update_news
+from scripts.update_news import (
+    TemporaryGeminiUnavailable, build_feed, clean_text, gemini_summarize,
+    parse_rss, suitable_positive_story,
+)
 
 
 SAMPLE_RSS = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -72,6 +80,56 @@ class NewsPipelineTests(unittest.TestCase):
         ]
         result = build_feed([], {}, old, "2026-10-23T03:00:00Z")
         self.assertEqual([entry["id"] for entry in result["updates"]], ["approved"])
+
+    def test_temporary_gemini_503_retries_then_defers(self):
+        article = {
+            "id": "abc", "title": "TVK Vijay education awards",
+            "sourceName": "Example News", "sourceSnippet": "Students felicitated",
+            "language": "en",
+        }
+        error = urllib.error.HTTPError(
+            "https://example.org", 503, "Service Unavailable", {},
+            io.BytesIO(b'{"error":{"status":"UNAVAILABLE"}}'),
+        )
+        with patch.object(update_news.urllib.request, "urlopen", side_effect=error) as fetch, \\
+             patch.object(update_news.time, "sleep") as sleep:
+            with self.assertRaises(TemporaryGeminiUnavailable):
+                gemini_summarize([article], "fake-test-key", "test-model")
+            self.assertEqual(fetch.call_count, 3)
+            self.assertEqual(sleep.call_count, 2)
+
+    def test_deferred_refresh_keeps_existing_file_unchanged(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            target = Path(tempdir) / "updates.json"
+            original = '{"updates":[{"id":"old"}],"generatedAt":"old"}\\n'
+            target.write_text(original, encoding="utf-8")
+            article = {"id": "new", "title": "TVK Vijay education awards"}
+            with patch.object(update_news, "OUTPUT", target), \\
+                 patch.object(update_news, "load_existing", return_value=[]), \\
+                 patch.object(update_news, "collect_articles", return_value=[article]), \\
+                 patch.object(update_news, "gemini_summarize",
+                              side_effect=TemporaryGeminiUnavailable("HTTP 503")), \\
+                 patch.dict(os.environ, {"GEMINI_API_KEY": "fake-test-key"}):
+                self.assertEqual(update_news.main(), 0)
+            self.assertEqual(target.read_text(encoding="utf-8"), original)
+
+    def test_unchanged_eligible_feed_does_not_make_cosmetic_commit(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            target = Path(tempdir) / "updates.json"
+            old = {
+                "id": "one", "title": "TVK Vijay education awards",
+                "content": "Students felicitated", "sourceName": "Example News",
+                "sourceUrl": "https://example.org/story",
+                "publishedAt": "2026-10-23T03:00:00Z",
+            }
+            original = json.dumps({"updates": [old], "generatedAt": "2026-10-23T03:00:00Z"})
+            target.write_text(original, encoding="utf-8")
+            with patch.object(update_news, "OUTPUT", target), \\
+                 patch.object(update_news, "load_existing", return_value=[old]), \\
+                 patch.object(update_news, "collect_articles", return_value=[]), \\
+                 patch.dict(os.environ, {"GEMINI_API_KEY": "fake-test-key"}):
+                self.assertEqual(update_news.main(), 0)
+            self.assertEqual(target.read_text(encoding="utf-8"), original)
 
     def test_build_feed_caps_items_at_100(self):
         old = [{"id": str(i), "title": "Vijay student education awards", "content": "TVK felicitates students", "sourceUrl": "https://example.com/a", "sourceName": "Example News", "date": f"2026-10-{(i % 28) + 1:02d}"} for i in range(110)]
