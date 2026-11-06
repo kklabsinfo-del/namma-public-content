@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""Build the public Namma Thalapathy news feed from Google News RSS + one Gemini batch call."""
+"""Build a source-linked fan feed from RSS, without AI or rewritten news."""
 from __future__ import annotations
 
 import datetime as dt
 import email.utils
 import hashlib
+import html
 import json
-import os
 import re
 import sys
-import time
-import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -30,8 +28,6 @@ RELEVANCE_TERMS = [
     "vijay", "tvk", "tamilaga vettri", "tamilaga vetri", "thalapathy",
     "தமிழக வெற்றிக் கழகம்", "தமிழக வெற்றி கழகம்", "விஜய்", "தவெக",
 ]
-ALLOWED_CATEGORIES = {"TVK", "CINEMA", "PUBLIC_AFFAIRS", "OTHER"}
-
 
 
 # Conservative editorial selection. This is a source-linked positive fan feed,
@@ -62,9 +58,6 @@ CONSTRUCTIVE_TOPICS = (
 
 LOW_CONFIDENCE_PUBLISHERS = {"facebook", "instagram", "youtube", "tiktok", "x", "twitter"}
 
-class TemporaryGeminiUnavailable(RuntimeError):
-    """A rate limit or temporary provider/network failure; feed must be preserved."""
-
 
 def eligible_publisher(name: str) -> bool:
     source = name.casefold().strip()
@@ -86,7 +79,8 @@ def now_iso() -> str:
 def clean_text(value: str | None, limit: int = 1500) -> str:
     if not value:
         return ""
-    value = re.sub(r"<[^>]+>", " ", value)
+    # Remove RSS markup and decode HTML entities; never paraphrase the source.
+    value = html.unescape(re.sub(r"<[^>]+>", " ", value))
     value = re.sub(r"\s+", " ", value).strip()
     return value[:limit]
 
@@ -121,9 +115,8 @@ def parse_rss(xml_bytes: bytes, language: str = "en") -> list[dict[str, str]]:
             pub_date = ""
         source_node = node.find("source")
         source = clean_text(source_node.text if source_node is not None else "", 120)
-        if not title or not link.startswith(("https://", "http://")):
+        if not title or not link.startswith("https://"):
             continue
-        haystack = (title + " " + description).casefold()
         if not suitable_positive_story(title, description) or not eligible_publisher(source):
             continue
         stable = re.sub(r"\W+", " ", title.casefold()).strip()
@@ -155,81 +148,6 @@ def collect_articles(fetcher=get_url) -> list[dict[str, str]]:
     return sorted(found.values(), key=lambda item: item.get("publishedAt", ""), reverse=True)
 
 
-def gemini_summarize(articles: list[dict[str, str]], api_key: str, model: str) -> dict[str, dict[str, str]]:
-    """One Gemini request for the entire batch; the key stays in the workflow secret."""
-    if not articles:
-        return {}
-    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model, safe='')}:generateContent"
-    prompt_articles = [
-        {"id": a["id"], "headline": a["title"], "publisher": a["sourceName"],
-         "feed_description": a["sourceSnippet"], "source_language": a["language"]}
-        for a in articles[:MAX_ITEMS]
-    ]
-    prompt = (
-        "You write neutral, concise summaries for the positive, constructive TVK section of an unofficial fan app. "
-        "Use only the supplied headline and feed description. Do not add facts, infer outcomes, "
-        "write political persuasion, invent quotes, or claim verification. If the description is "
-        "insufficient, produce a cautious one-sentence summary based only on the headline. "
-        "Preserve the supplied article ID exactly. Return JSON only with key 'items', an array of "
-        "objects {id, summary, category, language}. category must be one of TVK, CINEMA, "
-        "PUBLIC_AFFAIRS, OTHER. language must be ta or en. summary should be 1-3 short sentences; "
-        "Tamil for ta and English for en. Keep the headline separate; do not rewrite it. Input: "
-        + json.dumps(prompt_articles, ensure_ascii=False)
-    )
-    body = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
-    }
-    request = urllib.request.Request(
-        endpoint,
-        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": USER_AGENT, "x-goog-api-key": api_key},
-        method="POST",
-    )
-    last_error: Exception | None = None
-    for attempt in range(3):
-        try:
-            with urllib.request.urlopen(request, timeout=45) as response:
-                result = json.loads(response.read().decode("utf-8"))
-            text = result["candidates"][0]["content"]["parts"][0]["text"]
-            decoded = json.loads(text)
-            outputs: dict[str, dict[str, str]] = {}
-            for item in decoded.get("items", []):
-                item_id = str(item.get("id", ""))
-                summary = clean_text(str(item.get("summary", "")), 700)
-                category = str(item.get("category", "OTHER")).upper()
-                language = str(item.get("language", "en")).lower()
-                if item_id and summary and category in ALLOWED_CATEGORIES and language in {"ta", "en"}:
-                    outputs[item_id] = {"summary": summary, "category": category, "language": language}
-            if not outputs:
-                raise ValueError("Gemini returned no valid summaries")
-            return outputs
-        except urllib.error.HTTPError as exc:
-            detail = ""
-            try:
-                detail = exc.read().decode("utf-8", errors="replace")[:1200]
-            except Exception:
-                pass
-            last_error = RuntimeError(f"HTTP {exc.code}: {detail or exc.reason}")
-            if exc.code in {408, 429, 500, 502, 503, 504}:
-                if attempt < 2:
-                    time.sleep(2 ** attempt)
-                    continue
-                raise TemporaryGeminiUnavailable(f"HTTP {exc.code}: {detail or exc.reason}") from exc
-            break
-        except (urllib.error.URLError, TimeoutError) as exc:
-            last_error = exc
-            if attempt < 2:
-                time.sleep(2 ** attempt)
-                continue
-            raise TemporaryGeminiUnavailable(str(exc)) from exc
-        except (KeyError, ValueError) as exc:
-            last_error = exc
-            if attempt < 2:
-                time.sleep(2 ** attempt)
-    raise RuntimeError(f"Gemini summarization failed after retries: {last_error}")
-
-
 def load_existing(path: Path = OUTPUT) -> list[dict[str, Any]]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -239,86 +157,107 @@ def load_existing(path: Path = OUTPUT) -> list[dict[str, Any]]:
         return []
 
 
-def build_feed(articles: list[dict[str, str]], summaries: dict[str, dict[str, str]],
-               existing: list[dict[str, Any]], generated_at: str | None = None) -> dict[str, Any]:
+def valid_rss_entry(item: dict[str, Any]) -> bool:
+    """Never republish historical AI summaries as if they were RSS excerpts."""
+    title = str(item.get("title") or "")
+    excerpt = str(item.get("content") or "")
+    return (
+        item.get("status") == "RSS_EXCERPT"
+        and str(item.get("sourceUrl") or "").startswith("https://")
+        and eligible_publisher(str(item.get("sourceName") or ""))
+        and suitable_positive_story(title, excerpt)
+    )
+
+
+def build_feed(
+    articles: list[dict[str, str]],
+    existing: list[dict[str, Any]],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
     generated_at = generated_at or now_iso()
-    old_by_id: dict[str, dict[str, Any]] = {}
-    for old in existing:
-        if isinstance(old, dict):
-            old_id = str(old.get("id") or "")
-            if old_id:
-                old_by_id[old_id] = old
-    # Purge previously published conflict or speculative stories too.
-    merged = {
-        key: value for key, value in old_by_id.items()
-        if suitable_positive_story(str(value.get("title") or ""),
-                                   str(value.get("content") or ""))
-        and eligible_publisher(str(value.get("sourceName") or ""))
-        and str(value.get("sourceUrl") or "").startswith("https://")
+
+    # Keep only previously published source-provided excerpts. Historical
+    # Gemini-written content is deliberately excluded from the new feed.
+    merged: dict[str, dict[str, Any]] = {
+        str(item["id"]): item
+        for item in existing
+        if isinstance(item, dict) and item.get("id") and valid_rss_entry(item)
     }
     for article in articles:
-        summary = summaries.get(article["id"])
-        if not summary or not eligible_publisher(article["sourceName"]) or not suitable_positive_story(article["title"], summary["summary"]):
+        title = article.get("title", "")
+        excerpt = article.get("sourceSnippet", "")
+        source_url = article.get("sourceUrl", "")
+        publisher = article.get("sourceName", "")
+        if (
+            not article.get("id")
+            or not source_url.startswith("https://")
+            or not eligible_publisher(publisher)
+            or not suitable_positive_story(title, excerpt)
+        ):
             continue
-        merged[article["id"]] = {
+
+        # "content" contains only text actually supplied in the RSS
+        # description (minus markup/HTML entities). Do not fabricate a
+        # summary when Google News provides only a headline.
+        excerpt = clean_text(excerpt, 1200)
+        if excerpt.casefold() == clean_text(title).casefold():
+            excerpt = ""
+
+        item = {
             "id": article["id"],
-            "title": article["title"],
-            "content": summary["summary"],
-            "category": summary["category"],
+            "title": title,
+            "content": excerpt,
+            "category": "TVK",
             "date": article.get("publishedAt") or generated_at[:10],
             "publishedAt": article.get("publishedAt") or generated_at,
             "retrievedAt": generated_at,
-            "sourceName": article["sourceName"],
-            "sourceUrl": article["sourceUrl"],
-            "language": summary["language"],
-            "status": "SOURCE_LINKED",
+            "sourceName": publisher,
+            "sourceUrl": source_url,
+            "language": article.get("language", "en"),
+            "status": "RSS_EXCERPT",
         }
-    # Keep newest entries first; missing/old dates naturally sort lower.
-    items = sorted(merged.values(), key=lambda x: str(x.get("publishedAt") or x.get("date") or ""), reverse=True)
+        prior = merged.get(item["id"])
+        # No timestamp changes or cosmetic commits for an unchanged item.
+        if prior and all(
+            prior.get(key) == item.get(key)
+            for key in ("title", "content", "category", "date", "publishedAt",
+                        "sourceName", "sourceUrl", "language", "status")
+        ):
+            continue
+        merged[item["id"]] = item
+
+    items = sorted(
+        merged.values(),
+        key=lambda x: str(x.get("publishedAt") or x.get("date") or ""),
+        reverse=True,
+    )
     return {"updates": items[:MAX_ITEMS], "generatedAt": generated_at}
 
 
 def main() -> int:
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        print("Missing GEMINI_API_KEY. Add it under GitHub repository Settings > Secrets and variables > Actions.", file=sys.stderr)
-        return 2
-    model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
     existing = load_existing()
     articles = collect_articles()
     if not articles:
-        print("No eligible new RSS stories; updating only existing feed selection.")
-    existing_ids = {str(item.get("id")) for item in existing if isinstance(item, dict) and item.get("id")}
-    articles = [article for article in articles if article["id"] not in existing_ids]
-    if not articles:
-        print("No new eligible stories; skipping Gemini.")
-        summaries = {}
-    else:
-        try:
-            summaries = gemini_summarize(articles, api_key, model)
-        except TemporaryGeminiUnavailable as exc:
-            # This is a deferred refresh, not a publication failure: never
-            # discard the last verified feed or burn retries in Actions.
-            print(f"::warning title=Feed refresh deferred::Gemini temporarily unavailable ({exc}); existing updates.json preserved.", file=sys.stderr)
-            return 0
-        except Exception as exc:
-            print(f"News generation failed; preserving existing updates.json. {exc}", file=sys.stderr)
-            return 1
-    feed = build_feed(articles, summaries, existing)
-    if not feed["updates"]:
-        print("No eligible positive stories: publishing an empty feed rather than unsafe content.")
-    # A scheduled run with no eligible changes should not create a cosmetic
-    # generatedAt-only commit. Keep the original freshness timestamp honest.
-    if OUTPUT.exists() and feed["updates"] == existing:
-        print("No changes to eligible stories; preserving existing feed without a commit.")
+        # This also covers RSS outages. A failed fetch must never erase the
+        # last usable feed or rewrite its freshness timestamp.
+        print("No eligible RSS stories available; preserving the current feed.")
         return 0
+
+    feed = build_feed(articles, existing)
+    if not feed["updates"]:
+        print("No valid source-linked items; preserving the current feed.")
+        return 0
+    if OUTPUT.exists() and feed["updates"] == existing:
+        print("No source-content changes; no commit needed.")
+        return 0
+
     new_content = json.dumps(feed, ensure_ascii=False, indent=2) + "\n"
     old_content = OUTPUT.read_text(encoding="utf-8") if OUTPUT.exists() else ""
     if new_content == old_content:
         print("Feed unchanged; no commit needed.")
         return 0
     OUTPUT.write_text(new_content, encoding="utf-8")
-    print(f"Updated feed with {len(feed['updates'])} stories; generated summaries for {len(summaries)} items.")
+    print(f"Updated feed with {len(feed['updates'])} source-linked RSS stories (no AI).")
     return 0
 
 
