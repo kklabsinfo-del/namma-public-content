@@ -62,6 +62,10 @@ CONSTRUCTIVE_TOPICS = (
 
 LOW_CONFIDENCE_PUBLISHERS = {"facebook", "instagram", "youtube", "tiktok", "x", "twitter"}
 
+class TemporaryGeminiUnavailable(RuntimeError):
+    """A rate limit or temporary provider/network failure; feed must be preserved."""
+
+
 def eligible_publisher(name: str) -> bool:
     source = name.casefold().strip()
     return bool(source) and source not in LOW_CONFIDENCE_PUBLISHERS and source != "google news source"
@@ -207,11 +211,19 @@ def gemini_summarize(articles: list[dict[str, str]], api_key: str, model: str) -
             except Exception:
                 pass
             last_error = RuntimeError(f"HTTP {exc.code}: {detail or exc.reason}")
-            if attempt < 2 and exc.code in {429, 500, 502, 503, 504}:
+            if exc.code in {408, 429, 500, 502, 503, 504}:
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise TemporaryGeminiUnavailable(f"HTTP {exc.code}: {detail or exc.reason}") from exc
+            break
+        except (urllib.error.URLError, TimeoutError) as exc:
+            last_error = exc
+            if attempt < 2:
                 time.sleep(2 ** attempt)
                 continue
-            break
-        except (urllib.error.URLError, TimeoutError, KeyError, ValueError, json.JSONDecodeError) as exc:
+            raise TemporaryGeminiUnavailable(str(exc)) from exc
+        except (KeyError, ValueError) as exc:
             last_error = exc
             if attempt < 2:
                 time.sleep(2 ** attempt)
@@ -284,12 +296,22 @@ def main() -> int:
     else:
         try:
             summaries = gemini_summarize(articles, api_key, model)
+        except TemporaryGeminiUnavailable as exc:
+            # This is a deferred refresh, not a publication failure: never
+            # discard the last verified feed or burn retries in Actions.
+            print(f"::warning title=Feed refresh deferred::Gemini temporarily unavailable ({exc}); existing updates.json preserved.", file=sys.stderr)
+            return 0
         except Exception as exc:
             print(f"News generation failed; preserving existing updates.json. {exc}", file=sys.stderr)
             return 1
     feed = build_feed(articles, summaries, existing)
     if not feed["updates"]:
         print("No eligible positive stories: publishing an empty feed rather than unsafe content.")
+    # A scheduled run with no eligible changes should not create a cosmetic
+    # generatedAt-only commit. Keep the original freshness timestamp honest.
+    if OUTPUT.exists() and feed["updates"] == existing:
+        print("No changes to eligible stories; preserving existing feed without a commit.")
+        return 0
     new_content = json.dumps(feed, ensure_ascii=False, indent=2) + "\n"
     old_content = OUTPUT.read_text(encoding="utf-8") if OUTPUT.exists() else ""
     if new_content == old_content:
