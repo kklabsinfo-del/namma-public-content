@@ -25,7 +25,7 @@ class NewsPipelineTests(unittest.TestCase):
     def test_parse_filters_irrelevant_and_keeps_source(self):
         items = parse_rss(SAMPLE_RSS)
         self.assertEqual(len(items), 1)
-        self.assertEqual(items[0]["title"], "Vijay announces a public event")
+        self.assertEqual(items[0]["title"], "Vijay announces student education awards")
         self.assertEqual(items[0]["sourceName"], "Example News")
         self.assertTrue(items[0]["sourceUrl"].startswith("https://"))
 
@@ -55,14 +55,26 @@ class NewsPipelineTests(unittest.TestCase):
 
     def test_old_conflict_stories_are_removed(self):
         old = [
-            {"id": "bad", "title": "TVK accused in poaching allegations", "content": "Political row", "sourceUrl": "https://example.com/b"},
-            {"id": "good", "title": "TVK Vijay education awards", "content": "Students felicitated", "sourceUrl": "https://example.com/g"},
+            {"id": "bad", "title": "TVK accused in poaching allegations", "content": "Political row", "sourceUrl": "https://example.com/b", "sourceName": "Example News"},
+            {"id": "good", "title": "TVK Vijay education awards", "content": "Students felicitated", "sourceUrl": "https://example.com/g", "sourceName": "Example News"},
         ]
         feed = build_feed([], {}, old, "2026-10-23T03:00:00Z")
         self.assertEqual([x["id"] for x in feed["updates"]], ["good"])
 
+    def test_old_unattributed_or_untrusted_stories_are_not_republished(self):
+        old = [
+            {"id": "unknown", "title": "TVK Vijay education awards", "content": "Students felicitated",
+             "sourceUrl": "https://example.com/a"},
+            {"id": "social", "title": "TVK Vijay education awards", "content": "Students felicitated",
+             "sourceUrl": "https://example.com/b", "sourceName": "Instagram"},
+            {"id": "approved", "title": "TVK Vijay education awards", "content": "Students felicitated",
+             "sourceUrl": "https://example.com/c", "sourceName": "Example News"},
+        ]
+        result = build_feed([], {}, old, "2026-10-23T03:00:00Z")
+        self.assertEqual([entry["id"] for entry in result["updates"]], ["approved"])
+
     def test_build_feed_caps_items_at_100(self):
-        old = [{"id": str(i), "title": "Vijay student education awards", "content": "TVK felicitates students", "sourceUrl": "https://example.com/a", "date": f"2026-10-{(i % 28) + 1:02d}"} for i in range(110)]
+        old = [{"id": str(i), "title": "Vijay student education awards", "content": "TVK felicitates students", "sourceUrl": "https://example.com/a", "sourceName": "Example News", "date": f"2026-10-{(i % 28) + 1:02d}"} for i in range(110)]
         result = build_feed([], {}, old, "2026-10-23T03:00:00Z")
         self.assertEqual(len(result["updates"]), 100)
 
