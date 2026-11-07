@@ -19,9 +19,13 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "updates.json"
 MAX_ITEMS = 100
 USER_AGENT = "NammaThalapathyNewsBot/1.0 (RSS reader)"
+# Two additional focused English queries widen the source pool without AI
+# translation, fabricated summaries, paid APIs, or frequent workflow runs.
 FEED_QUERIES = [
     ("Vijay TVK Tamil Nadu", "en"),
     ("Tamilaga Vettri Kazhagam Vijay", "en"),
+    ("TVK Vijay students scholarships education welfare", "en"),
+    ("Tamilaga Vettri Kazhagam volunteers community service", "en"),
     ("தமிழக வெற்றிக் கழகம் விஜய்", "ta"),
 ]
 RELEVANCE_TERMS = [
@@ -94,7 +98,7 @@ def get_url(url: str, timeout: int = 20) -> bytes:
 def google_news_url(query: str, language: str) -> str:
     hl = "ta" if language == "ta" else "en-IN"
     ceid = "IN:ta" if language == "ta" else "IN:en"
-    params = urllib.parse.urlencode({"q": query + " when:3d", "hl": hl, "gl": "IN", "ceid": ceid})
+    params = urllib.parse.urlencode({"q": query + " when:7d", "hl": hl, "gl": "IN", "ceid": ceid})
     return "https://news.google.com/rss/search?" + params
 
 
