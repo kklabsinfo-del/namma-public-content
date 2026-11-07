@@ -45,6 +45,16 @@ def published_rss_story(**overrides):
 
 
 class NewsPipelineTests(unittest.TestCase):
+    def test_source_queries_cover_a_week_with_bounded_free_workflow_requests(self):
+        from urllib.parse import parse_qs, urlparse
+        self.assertGreaterEqual(
+            sum(language == "en" for _, language in update_news.FEED_QUERIES), 4
+        )
+        self.assertLessEqual(len(update_news.FEED_QUERIES), 6)
+        url = update_news.google_news_url("TVK Vijay education", "en")
+        query = parse_qs(urlparse(url).query)["q"][0]
+        self.assertIn("when:7d", query)
+
     def test_parse_preserves_source_headline_and_rss_description(self):
         items = parse_rss(SAMPLE_RSS)
         self.assertEqual(len(items), 1)
