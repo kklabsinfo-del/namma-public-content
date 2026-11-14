@@ -75,7 +75,7 @@ class NewsPipelineTests(unittest.TestCase):
         self.assertEqual(story["content"], article["sourceSnippet"])
         self.assertEqual(story["sourceName"], article["sourceName"])
         self.assertEqual(story["sourceUrl"], article["sourceUrl"])
-        self.assertEqual(story["status"], "RSS_EXCERPT")
+        self.assertEqual(story["status"], "PENDING")
 
     def test_missing_or_duplicate_description_is_not_invented(self):
         article = rss_article(sourceSnippet="TVK Vijay student education awards")
@@ -84,10 +84,10 @@ class NewsPipelineTests(unittest.TestCase):
         empty = rss_article(sourceSnippet="")
         self.assertEqual(build_feed([empty], [], "2026-10-23T03:00:00Z")["updates"][0]["content"], "")
 
-    def test_editorial_filter_rejects_conflict_and_unrelated_stories(self):
-        self.assertFalse(suitable_positive_story("TVK Vijay accused in dispute", "Student event"))
-        self.assertFalse(suitable_positive_story("TVK Vijay attacks opposition", "Education speech"))
-        self.assertFalse(suitable_positive_story("Vijay announces election victory", "Political claims"))
+    def test_relevance_check_does_not_make_editorial_decisions(self):
+        self.assertTrue(suitable_positive_story("TVK Vijay accused in dispute", "Student event"))
+        self.assertTrue(suitable_positive_story("TVK Vijay attacks opposition", "Education speech"))
+        self.assertTrue(suitable_positive_story("Vijay announces election victory", "Political claims"))
         self.assertTrue(suitable_positive_story("TVK Vijay felicitates students", "Education awards event"))
         self.assertFalse(eligible_publisher("Instagram"))
         self.assertTrue(eligible_publisher("Example News"))
@@ -102,14 +102,14 @@ class NewsPipelineTests(unittest.TestCase):
         feed = build_feed([rss_article(id="new-rss")], old, "2026-10-24T03:00:00Z")
         self.assertEqual({x["id"] for x in feed["updates"]}, {"old-rss", "new-rss"})
 
-    def test_old_conflict_and_untrusted_entries_are_not_republished(self):
+    def test_pending_conflict_and_untrusted_entries(self):
         old = [
             published_rss_story(id="bad", title="TVK accused in poaching allegations"),
             published_rss_story(id="social", sourceName="Instagram"),
             published_rss_story(id="good"),
         ]
         feed = build_feed([], old, "2026-10-23T03:00:00Z")
-        self.assertEqual([x["id"] for x in feed["updates"]], ["good"])
+        self.assertEqual({x["id"] for x in feed["updates"]}, {"bad", "good"})
 
     def test_build_feed_caps_items_at_100(self):
         old = [
@@ -159,7 +159,7 @@ class NewsPipelineTests(unittest.TestCase):
             data = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(len(data["updates"]), 1)
             self.assertEqual(data["updates"][0]["content"], "TVK leader Vijay felicitated students.")
-            self.assertEqual(data["updates"][0]["status"], "RSS_EXCERPT")
+            self.assertEqual(data["updates"][0]["status"], "PENDING")
 
     def test_unchanged_eligible_feed_does_not_make_cosmetic_commit(self):
         with tempfile.TemporaryDirectory() as directory:
