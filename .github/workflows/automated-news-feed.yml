@@ -28,17 +28,17 @@ jobs:
       - name: Run tests
         run: python -m unittest discover -s tests -v
 
-      - name: Collect original RSS headlines and excerpts
+      - name: Collect RSS articles for owner approval
         run: python scripts/update_news.py
 
-      - name: Commit updated feed
+      - name: Commit pending review queue
         run: |
-          if git diff --quiet -- updates.json; then
+          if git diff --quiet -- pending_articles.json; then
             echo "No feed changes to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add updates.json
-          git commit -m "chore: refresh automated news feed"
+          git add pending_articles.json
+          git commit -m "chore: refresh pending article queue"
           git push
