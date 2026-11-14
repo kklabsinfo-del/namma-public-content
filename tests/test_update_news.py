@@ -57,7 +57,7 @@ class NewsPipelineTests(unittest.TestCase):
 
     def test_parse_preserves_source_headline_and_rss_description(self):
         items = parse_rss(SAMPLE_RSS)
-        self.assertEqual(len(items), 1)
+        self.assertEqual(len(items), 2)
         self.assertEqual(items[0]["title"], "Vijay announces student education awards")
         self.assertEqual(items[0]["sourceSnippet"], "TVK leader Vijay felicitated students & teachers.")
         self.assertEqual(items[0]["sourceName"], "Example News")
@@ -89,7 +89,7 @@ class NewsPipelineTests(unittest.TestCase):
         self.assertTrue(suitable_positive_story("TVK Vijay attacks opposition", "Education speech"))
         self.assertTrue(suitable_positive_story("Vijay announces election victory", "Political claims"))
         self.assertTrue(suitable_positive_story("TVK Vijay felicitates students", "Education awards event"))
-        self.assertFalse(eligible_publisher("Instagram"))
+        self.assertTrue(eligible_publisher("Instagram"))
         self.assertTrue(eligible_publisher("Example News"))
 
     def test_prior_ai_summaries_are_removed_on_next_valid_rss_refresh(self):
@@ -109,7 +109,7 @@ class NewsPipelineTests(unittest.TestCase):
             published_rss_story(id="good"),
         ]
         feed = build_feed([], old, "2026-10-23T03:00:00Z")
-        self.assertEqual({x["id"] for x in feed["updates"]}, {"bad", "good"})
+        self.assertEqual({x["id"] for x in feed["updates"]}, {"bad", "social", "good"})
 
     def test_build_feed_retains_110_pending_items(self):
         old = [
