@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a source-linked fan feed from RSS, without AI or rewritten news."""
+"""Collect source-linked articles for owner review; never publish automatically."""
 from __future__ import annotations
 
 import datetime as dt
@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "updates.json"
+OUTPUT = ROOT / "pending_articles.json"
 MAX_ITEMS = 100
 USER_AGENT = "NammaThalapathyNewsBot/1.0 (RSS reader)"
 # Two additional focused English queries widen the source pool without AI
@@ -34,32 +34,6 @@ RELEVANCE_TERMS = [
 ]
 
 
-# Conservative editorial selection. This is a source-linked positive fan feed,
-# not a comprehensive record of political news or independently verified reporting.
-BLOCKED_TOPICS = (
-    "alleg", "accus", "poaching", "conspiracy", "corrupt", "scam", "fraud",
-    "brib", "arrest", "police", "raid", "violence", "protest against",
-    "backlash", "slams", "attacks", "condemns", "clash", "court", "lawsuit",
-    "defection", "no confidence", "no-confidence", "vote against",
-    "resign", "crisis", "rumour", "rumor", "unverified", "fake news",
-    "shock", "shocking", "mystery", "mysterious", "panic",
-    "அதிர்ச்சி", "மர்ம", "பதறி", "கேள்வி எழ", "எழும் கேள்வி",
-    "நம்பிக்கையில்லா", "சர்ச்சை", "குற்றச்சாட்டு", "ஊழல்",
-    "புகார்", "கைது", "வழக்கு", "மோதல்", "கண்டனம்",
-    "கவிழுமா", "லஞ்சம்", "சதி", "தாக்குதல்", "விமர்சனம்",
-)
-CONSTRUCTIVE_TOPICS = (
-    "education", "student", "scholarship", "award", "felicitat",
-    "honour", "honor", "achievement", "community service",
-    "social service", "volunteer", "welfare", "charity", "donat",
-    "blood donation", "health camp", "medical camp", "tree plant",
-    "environment", "relief work", "public service", "assistance",
-    "helps", "helped", "initiative", "inaugurat", "support for",
-    "கல்வி", "மாணவர்", "மாணவி", "விருது", "பாராட்டு",
-    "சாதனை", "உதவி", "நலத்திட்ட", "சேவை", "மரக்கன்று",
-    "மரநடுகை", "ரத்த தான", "மருத்துவ முகாம்", "விழா",
-)
-
 LOW_CONFIDENCE_PUBLISHERS = {"facebook", "instagram", "youtube", "tiktok", "x", "twitter"}
 
 
@@ -68,12 +42,9 @@ def eligible_publisher(name: str) -> bool:
     return bool(source) and source not in LOW_CONFIDENCE_PUBLISHERS and source != "google news source"
 
 def suitable_positive_story(title: str, description: str) -> bool:
+    # Relevance only. Editorial decisions belong to the owner, not keywords.
     text = (title + " " + description).casefold()
-    if not any(term.casefold() in text for term in RELEVANCE_TERMS):
-        return False
-    if any(term.casefold() in text for term in BLOCKED_TOPICS):
-        return False
-    return any(term.casefold() in text for term in CONSTRUCTIVE_TOPICS)
+    return any(term.casefold() in text for term in RELEVANCE_TERMS)
 
 
 def now_iso() -> str:
@@ -164,11 +135,11 @@ def load_existing(path: Path | None = None) -> list[dict[str, Any]]:
 
 
 def valid_rss_entry(item: dict[str, Any]) -> bool:
-    """Never republish historical AI summaries as if they were RSS excerpts."""
+    """Keep only unreviewed source-linked submissions."""
     title = str(item.get("title") or "")
     excerpt = str(item.get("content") or "")
     return (
-        item.get("status") == "RSS_EXCERPT"
+        item.get("status") == "PENDING"
         and str(item.get("sourceUrl") or "").startswith("https://")
         and eligible_publisher(str(item.get("sourceName") or ""))
         and suitable_positive_story(title, excerpt)
@@ -220,7 +191,7 @@ def build_feed(
             "sourceName": publisher,
             "sourceUrl": source_url,
             "language": article.get("language", "en"),
-            "status": "RSS_EXCERPT",
+            "status": "PENDING",
         }
         prior = merged.get(item["id"])
         # No timestamp changes or cosmetic commits for an unchanged item.
@@ -263,7 +234,7 @@ def main() -> int:
         print("Feed unchanged; no commit needed.")
         return 0
     OUTPUT.write_text(new_content, encoding="utf-8")
-    print(f"Updated feed with {len(feed['updates'])} source-linked RSS stories (no AI).")
+    print(f"Staged {len(feed['updates'])} RSS articles for admin review.")
     return 0
 
 
