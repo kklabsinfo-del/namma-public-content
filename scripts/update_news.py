@@ -17,7 +17,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "pending_articles.json"
-MAX_ITEMS = 100
+MAX_ITEMS = 500
 USER_AGENT = "NammaThalapathyNewsBot/1.0 (RSS reader)"
 # Two additional focused English queries widen the source pool without AI
 # translation, fabricated summaries, paid APIs, or frequent workflow runs.
@@ -44,7 +44,7 @@ def eligible_publisher(name: str) -> bool:
 def suitable_positive_story(title: str, description: str) -> bool:
     # Relevance only. Editorial decisions belong to the owner, not keywords.
     text = (title + " " + description).casefold()
-    return any(term.casefold() in text for term in RELEVANCE_TERMS)
+    return True  # No automated topic or sentiment exclusions.
 
 
 def now_iso() -> str:
@@ -92,7 +92,7 @@ def parse_rss(xml_bytes: bytes, language: str = "en") -> list[dict[str, str]]:
         source = clean_text(source_node.text if source_node is not None else "", 120)
         if not title or not link.startswith("https://"):
             continue
-        if not suitable_positive_story(title, description) or not eligible_publisher(source):
+        if not eligible_publisher(source):
             continue
         stable = re.sub(r"\W+", " ", title.casefold()).strip()
         item_id = hashlib.sha256((link + "|" + stable).encode("utf-8")).hexdigest()[:16]
@@ -142,7 +142,7 @@ def valid_rss_entry(item: dict[str, Any]) -> bool:
         item.get("status") == "PENDING"
         and str(item.get("sourceUrl") or "").startswith("https://")
         and eligible_publisher(str(item.get("sourceName") or ""))
-        and suitable_positive_story(title, excerpt)
+        
     )
 
 
@@ -153,8 +153,8 @@ def build_feed(
 ) -> dict[str, Any]:
     generated_at = generated_at or now_iso()
 
-    # Keep only previously published source-provided excerpts. Historical
-    # Gemini-written content is deliberately excluded from the new feed.
+    # Keep previously staged source-provided excerpts. Historical
+    # Gemini-written content is deliberately excluded from the review queue.
     merged: dict[str, dict[str, Any]] = {
         str(item["id"]): item
         for item in existing
@@ -169,7 +169,7 @@ def build_feed(
             not article.get("id")
             or not source_url.startswith("https://")
             or not eligible_publisher(publisher)
-            or not suitable_positive_story(title, excerpt)
+            
         ):
             continue
 
