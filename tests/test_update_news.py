@@ -111,7 +111,7 @@ class NewsPipelineTests(unittest.TestCase):
         feed = build_feed([], old, "2026-10-23T03:00:00Z")
         self.assertEqual({x["id"] for x in feed["updates"]}, {"bad", "good"})
 
-    def test_build_feed_caps_items_at_100(self):
+    def test_build_feed_retains_110_pending_items(self):
         old = [
             published_rss_story(
                 id=str(i), sourceUrl=f"https://example.com/{i}",
@@ -120,7 +120,7 @@ class NewsPipelineTests(unittest.TestCase):
             for i in range(110)
         ]
         result = build_feed([], old, "2026-10-23T03:00:00Z")
-        self.assertEqual(len(result["updates"]), 100)
+        self.assertEqual(len(result["updates"]), 110)
 
     def test_unchanged_rss_story_preserves_retrieval_timestamp(self):
         old = published_rss_story()
