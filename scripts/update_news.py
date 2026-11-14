@@ -214,6 +214,13 @@ def build_feed(
 def main() -> int:
     existing = load_existing()
     articles = collect_articles()
+    try:
+        reviewed = json.loads((ROOT / "reviewed_articles.json").read_text(encoding="utf-8"))
+        reviewed_ids = set(reviewed.get("ids", []))
+    except (OSError, ValueError, TypeError):
+        reviewed_ids = set()
+    articles = [a for a in articles if a["id"] not in reviewed_ids]
+    existing = [a for a in existing if a.get("id") not in reviewed_ids]
     if not articles:
         # This also covers RSS outages. A failed fetch must never erase the
         # last usable feed or rewrite its freshness timestamp.
