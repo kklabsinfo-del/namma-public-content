@@ -39,7 +39,7 @@ LOW_CONFIDENCE_PUBLISHERS = {"facebook", "instagram", "youtube", "tiktok", "x", 
 
 def eligible_publisher(name: str) -> bool:
     source = name.casefold().strip()
-    return bool(source) and source not in LOW_CONFIDENCE_PUBLISHERS and source != "google news source"
+    return True  # The owner reviews every RSS result.
 
 def suitable_positive_story(title: str, description: str) -> bool:
     # Relevance only. Editorial decisions belong to the owner, not keywords.
@@ -92,8 +92,6 @@ def parse_rss(xml_bytes: bytes, language: str = "en") -> list[dict[str, str]]:
         source = clean_text(source_node.text if source_node is not None else "", 120)
         if not title or not link.startswith("https://"):
             continue
-        if not eligible_publisher(source):
-            continue
         stable = re.sub(r"\W+", " ", title.casefold()).strip()
         item_id = hashlib.sha256((link + "|" + stable).encode("utf-8")).hexdigest()[:16]
         items.append({
@@ -141,7 +139,6 @@ def valid_rss_entry(item: dict[str, Any]) -> bool:
     return (
         item.get("status") == "PENDING"
         and str(item.get("sourceUrl") or "").startswith("https://")
-        and eligible_publisher(str(item.get("sourceName") or ""))
         
     )
 
@@ -168,7 +165,6 @@ def build_feed(
         if (
             not article.get("id")
             or not source_url.startswith("https://")
-            or not eligible_publisher(publisher)
             
         ):
             continue
