@@ -1,5 +1,5 @@
 {
-  "autoPublishEnabled": true,
-  "policy": "welfare-only-original-topic-summaries",
-  "maxNewPerDay": 8
+    "autoPublishEnabled": false,
+    "policy": "welfare-only-original-topic-summaries",
+    "maxNewPerDay": 8
 }
