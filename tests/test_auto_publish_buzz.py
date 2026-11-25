@@ -89,6 +89,18 @@ class AutoPublishBuzzTests(unittest.TestCase):
         self.assertEqual(len(pub["updates"]), 1)
         self.assertEqual(len(p["updates"]), 1)
 
+    def test_owner_removed_article_can_never_be_republished_from_rss(self):
+        removed = story(i=250)
+        # The mobile owner panel writes the reviewed-ID ledger BEFORE
+        # deleting the published JSON row.
+        next_queue, published, added = publish(
+            {"updates": [removed]}, {"updates": []},
+            {"ids": [removed["id"]]}, {"autoPublishEnabled": True}, NOW
+        )
+        self.assertEqual(added, 0)
+        self.assertEqual(published["updates"], [])
+        self.assertEqual(next_queue["updates"], [])
+
     def test_tamil_is_preserved_and_no_unlicensed_images(self):
         item = story(
             title="விஜய் தவெக சார்பில் மாணவர்களுக்கு கல்வி உதவி வழங்கினார்",
