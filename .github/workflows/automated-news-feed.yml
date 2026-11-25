@@ -1,8 +1,9 @@
 name: Automated Namma Thalapathy News Feed
 
 on:
+  # Exactly once per day: 00:30 UTC = 06:00 IST
   schedule:
-    - cron: "30 0,13 * * *"
+    - cron: "30 0 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,14 +32,17 @@ jobs:
       - name: Collect RSS articles for owner approval
         run: python scripts/update_news.py
 
-      - name: Commit pending review queue
+      - name: Auto-publish only clearly eligible public-welfare sources
+        run: python scripts/auto_publish_buzz.py
+
+      - name: Commit changed pending and published feeds
         run: |
-          if git diff --quiet -- pending_articles.json; then
+          if git diff --quiet -- pending_articles.json updates.json; then
             echo "No feed changes to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pending_articles.json
-          git commit -m "chore: refresh pending article queue"
+          git add pending_articles.json updates.json
+          git commit -m "chore(buzz): daily curated source-linked feed"
           git push
