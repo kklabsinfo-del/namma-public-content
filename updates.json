@@ -1,6 +1,21 @@
 {
     "updates": [
         {
+            "id": "dda2f0dfdb2a7d80",
+            "title": "Video | Vijay Govt Defies Supreme Court On Deepam; FIR Against TVK MLA | Tamil Nadu Brief - NDTV",
+            "content": "A report from the named publisher is available via the source link.",
+            "category": "TVK",
+            "date": "2026-11-24T18:10:47Z",
+            "publishedAt": "2026-11-24T18:10:47Z",
+            "retrievedAt": "2026-11-24T23:10:57Z",
+            "sourceName": "NDTV",
+            "sourceUrl": "https:\/\/news.google.com\/rss\/articles\/CBMiswFBVV95cUxPbUJLQlA1cmxIa1J0NHhGRThRdUNiZWNFbk8wRGFTYkVLdXlJWlFpal9iQ3J1UEs1NkF5cTFVTUJqci1LcmlJM0dnSldBcFB1MkI2UXVkUWtlU2ROaUR2R2pxOWxRWE1TbXlxMGJ6VUM1ZU9wWXk5WnRRRFRucHJCNHpXVzlxU2lmdGM5MnBuNUgwT3pQTVZuLS1FWDA5Rk0wWnBjdlh1azJsSFFDQ2ZQeFc1SQ?oc=5",
+            "language": "en",
+            "status": "MANUAL_SOURCE_LINKED",
+            "summaryMethod": "ORIGINAL_LINK_NOTICE",
+            "approvedAt": "2026-11-25T08:41:37Z"
+        },
+        {
             "id": "a5742b3f8ddc2967",
             "title": "திருப்பரங்குன்றம் விவகாரம்: கூட்டணிக் கட்சிகளின் ஆதரவுக்காக நீதிமன்ற அவமதிப்பு ரிஸ்க் எடுத்த விஜய் - Indian Express - Tamil",
             "content": "இந்த வெளியீட்டாளர் வெளியிட்ட செய்தியை மூல இணைப்பில் படிக்கவும்.",
@@ -549,5 +564,5 @@
             "status": "RSS_EXCERPT"
         }
     ],
-    "generatedAt": "2026-11-25T08:41:28Z"
+    "generatedAt": "2026-11-25T08:41:37Z"
 }
