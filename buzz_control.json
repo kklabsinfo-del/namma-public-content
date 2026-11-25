@@ -1,0 +1,5 @@
+{
+  "autoPublishEnabled": true,
+  "policy": "welfare-only-original-topic-summaries",
+  "maxNewPerDay": 8
+}
