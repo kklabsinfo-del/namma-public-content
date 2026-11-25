@@ -141,10 +141,18 @@ def publish(
              and x.get("id") not in excluded and x.get("id") not in approved_ids]
     queue.sort(key=lambda x: str(x.get("publishedAt") or ""), reverse=True)
     allowed = control.get("autoPublishEnabled") is True
+    today = now.date()
+    already_published_today = sum(
+        1 for x in existing if isinstance(x, dict)
+        and x.get("status") == "AUTO_SOURCE_LINKED"
+        and (stamp := parse_date(x.get("approvedAt"))) is not None
+        and stamp.date() == today
+    )
+    remaining_quota = max(0, MAX_NEW_PER_DAY - already_published_today)
     additions: list[dict[str, Any]] = []
     seen_titles: set[str] = set()
     for item in queue:
-        if not allowed or len(additions) >= MAX_NEW_PER_DAY:
+        if not allowed or len(additions) >= remaining_quota:
             break
         topic = topic_for(item, now)
         if topic is None:
