@@ -45,6 +45,17 @@ class AutoPublishBuzzTests(unittest.TestCase):
         self.assertIsNone(topic_for(story(title="TVK Vijay party election vote welfare"), NOW))
         self.assertIsNone(topic_for(story(title="TVK Vijay announces new government"), NOW))
 
+    def test_sensitive_inflections_are_excluded_in_both_languages(self):
+        for word in ("arrested", "allegations", "elections", "protests",
+                     "controversy", "politics", "criticism"):
+            with self.subTest(word=word):
+                self.assertIsNone(topic_for(
+                    story(title=f"TVK Vijay volunteers distribute scholarships after {word}"),
+                    NOW))
+        self.assertIsNone(topic_for(
+            story(title="விஜய் தவெக மாணவர்களுக்கு உதவி வழங்கிய வழக்கில் கைது"),
+            NOW))
+
     def test_unknown_social_and_fake_publishers_are_not_trusted(self):
         for source in ["Facebook", "Instagram", "Unverified News", "", "Example News"]:
             self.assertIsNone(topic_for(story(sourceName=source), NOW))
