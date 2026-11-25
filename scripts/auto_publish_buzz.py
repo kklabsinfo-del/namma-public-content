@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import re
+from urllib.parse import urlsplit
 from pathlib import Path
 from typing import Any
 
@@ -110,9 +111,16 @@ def topic_for(item: dict[str, Any], now: dt.datetime) -> str | None:
     publisher = str(item.get("sourceName") or "").strip().casefold()
     url = str(item.get("sourceUrl") or "")
     date = parse_date(item.get("publishedAt"))
+    try:
+        parsed_url = urlsplit(url)
+        valid_url = (parsed_url.scheme == "https" and bool(parsed_url.hostname)
+                     and not parsed_url.username and not parsed_url.password
+                     and parsed_url.port in (None, 443))
+    except ValueError:
+        valid_url = False
     if (item.get("status") != "PENDING" or not re.fullmatch(r"[0-9a-f]{16}", str(item.get("id", "")))
         or not title or len(title) > 280 or publisher not in PUBLISHERS
-        or not url.startswith("https://") or not date
+        or not valid_url or not date
         or not (dt.timedelta() <= now-date <= dt.timedelta(hours=MAX_AGE_HOURS))
         or not PARTY.search(title) or EXCLUDE.search(title)):
         return None
