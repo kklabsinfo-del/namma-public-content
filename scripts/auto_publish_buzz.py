@@ -48,6 +48,16 @@ EXCLUDE = re.compile(
     r"தேர்தல்|எதிர்க்கட்சி|அரசியல்|முதல்வர்|அமைச்சர்|எம்எல்ஏ|"
     r"வாக்கு|போராட்ட|வதந்தி|அதிர்ச்சி|ஆட்சி", re.I
 )
+# Match inflections too ("arrested", "allegations", "protests", "criticized").
+EXCLUDE_STEMS = re.compile(
+    r"\b(?:arrest|accus|alleg|controvers|attack|clash|protest|election|"
+    r"minister|politic|campaign|critic|fraud|scam|viral|rumo|oppose|"
+    r"opposition|court|police|vote|voting|violenc|govt|government|"
+    r"fake|leak|slamm|disput|sedition)\w*\b|"
+    r"தாக்க|கண்டன|விமர்ச|மிரட்ட|எதிர்ப்ப|பிரச்சினை|சட்டமன்ற|"
+    r"வழக்க|கைத|தேர்தல|போராட்ட|மோத|குற்ற|சர்ச்சை", re.I
+)
+
 TOPICS = (
     ("education", re.compile(r"\b(?:students?|schools?|education|scholarships?|awards?|"
      r"college|textbook)\b|மாணவ|கல்வி|உதவித்தொகை|பள்ளி|விருது", re.I),
@@ -122,7 +132,8 @@ def topic_for(item: dict[str, Any], now: dt.datetime) -> str | None:
         or not title or len(title) > 280 or publisher not in PUBLISHERS
         or not valid_url or not date
         or not (dt.timedelta() <= now-date <= dt.timedelta(hours=MAX_AGE_HOURS))
-        or not PARTY.search(title) or EXCLUDE.search(title)):
+        or not PARTY.search(title) or EXCLUDE.search(title)
+        or EXCLUDE_STEMS.search(title)):
         return None
     # The headline must independently identify a concrete positive activity.
     # RSS snippets are not copied or used to invent additional details.
