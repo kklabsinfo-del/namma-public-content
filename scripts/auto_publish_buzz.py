@@ -210,7 +210,7 @@ def main() -> int:
     reviewed = read_json(REVIEWED, {"ids": []})
     new_queue, new_public, count = publish(pending, published, reviewed, control, now)
     changed_queue = write_if_changed(PENDING, new_queue)
-    changed_feed = write_if_changed(PUBLISHED, new_public)
+    changed_feed = write_if_changed(PUBLISHED, new_public) if count else False
     print(f"Buzz daily: auto-published={count}, pending={len(new_queue['updates'])}, "
           f"queue_changed={changed_queue}, feed_changed={changed_feed}, "
           f"enabled={control.get('autoPublishEnabled') is True}")
