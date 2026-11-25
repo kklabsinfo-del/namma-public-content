@@ -48,7 +48,7 @@ EXCLUDE = re.compile(
     r"வாக்கு|போராட்ட|வதந்தி|அதிர்ச்சி|ஆட்சி", re.I
 )
 TOPICS = (
-    ("education", re.compile(r"\b(?:student|school|education|scholarship|award|"
+    ("education", re.compile(r"\b(?:students?|schools?|education|scholarships?|awards?|"
      r"college|textbook)\b|மாணவ|கல்வி|உதவித்தொகை|பள்ளி|விருது", re.I),
      re.compile(r"\b(?:award|felicitat|donat|distribut|scholarship|support|"
      r"honou?r|recognition)\w*\b|வழங்க|உதவி|பாராட்ட|விருது", re.I)),
