@@ -1,6 +1,21 @@
 {
   "updates": [
     {
+      "id": "9590e0229403fd33",
+      "title": "தவெகவின் 2ம் கட்ட கல்வி விருது வழங்கும் விழா நேரலை - ETV Bharat",
+      "content": "விஜய் அல்லது தவெக தொடர்பான கல்வி உதவி அல்லது மாணவர் பாராட்டு குறித்து மூல செய்தி வெளியாகியுள்ளது. விவரங்களுக்கு வெளியீட்டாளரின் இணைப்பைப் பார்க்கவும்.",
+      "category": "Education",
+      "date": "2026-11-26T09:54:31Z",
+      "publishedAt": "2026-11-26T09:54:31Z",
+      "retrievedAt": "2026-11-27T08:58:56Z",
+      "sourceName": "ETV Bharat",
+      "sourceUrl": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNX1d1WkNBMUlhZGlJM1Fod0trMy1OTnpwbmJYUHFwY1daUHVISFNLckNVN0tteHlWakZLaGhBOS02Z1YtN01xME1NWGNMbFdaTmVHQzVoTGJHRk96bDJJcUk0SFEyc2NrTDZCbmpNb1FEYWh2Q1lTX2QtYkZXdkRhdG9vLXdGV0lTNEVHS0s5RVpxVUhaYmZwREtvQ1lGT2tkVEszSk5tMVhqb1poc0RkNXN30gG3AUFVX3lxTE5BVy03Wmh3NFBUZzVKdTRyU0JUdlVieGlud2dyNG5FeDdwd3VjSS1SYm93ZFZGQmxmS3VRakhZT1NBZ3EwSE9faXdoeFV6cEdWQ1dFbE1fNXpHbFJIQmFsXzN2Nlg5NW5UVy14Y3U5SEY5NlhqNGhGbjdteHhkZC1rSGNkb19jREFoODNoN0hXUmZYMHpIUjZ3VUlKUmNlNE55UzZBdkQ5NDNqY01mWms1U1daZFJBWQ?oc=5",
+      "language": "ta",
+      "status": "AUTO_SOURCE_LINKED",
+      "approvedAt": "2026-11-27T08:58:56.903636Z",
+      "summaryMethod": "ORIGINAL_TOPIC_TEMPLATE"
+    },
+    {
       "id": "70fd25dce45fc6cc",
       "title": "தவெக கல்வி விருது விழா இன்று தொடக்கம் - 9 மாவட்ட மாணவர்கள் பங்கேற்கின்றனர் - ETV Bharat",
       "content": "விஜய் அல்லது தவெக தொடர்பான கல்வி உதவி அல்லது மாணவர் பாராட்டு குறித்து மூல செய்தி வெளியாகியுள்ளது. விவரங்களுக்கு வெளியீட்டாளரின் இணைப்பைப் பார்க்கவும்.",
@@ -579,5 +594,5 @@
       "status": "RSS_EXCERPT"
     }
   ],
-  "generatedAt": "2026-11-26T08:49:15.270974Z"
+  "generatedAt": "2026-11-27T08:58:56.903636Z"
 }
