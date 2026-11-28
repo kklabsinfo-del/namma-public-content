@@ -1,6 +1,36 @@
 {
   "updates": [
     {
+      "id": "7809120285dbbb85",
+      "title": "Watch: Tamil Nadu CM Vijay honours student with disability at TVK education awards ceremony - The Hindu",
+      "content": "A source report covers education support or student recognition linked to Vijay or TVK. Visit the publisher for the details.",
+      "category": "Education",
+      "date": "2026-11-27T11:42:14Z",
+      "publishedAt": "2026-11-27T11:42:14Z",
+      "retrievedAt": "2026-11-28T08:20:23Z",
+      "sourceName": "The Hindu",
+      "sourceUrl": "https://news.google.com/rss/articles/CBMi4wFBVV95cUxQcXFfd3VhT2JGejZxNEY1d2k1WURzc1gtRlRGM0RRMnRDeV9uSUFTNl9CUUtoV2F2WEFjdE41Vko4dENGVkNCX2oxVUlCTHZjWkNFZjFWbFQzNWRLZGJNRE9MWXp3NEN0RXhMZVczSkNDdllKRHQwc3JiaEg2cnFiUXN5VWVnVjAyWUpOZEdDTHViNlUyUlMxRi1GV05jRzNiS1AzeHFUX2VMcDhqSE5NeThxRGdCcnMwWmxQZnNwcWgtaURyX2VKYkZDSG9JaVRLWWJLQXlsaTBXQkt1ZjJZdHQtcw?oc=5",
+      "language": "en",
+      "status": "AUTO_SOURCE_LINKED",
+      "approvedAt": "2026-11-28T08:20:23.534315Z",
+      "summaryMethod": "ORIGINAL_TOPIC_TEMPLATE"
+    },
+    {
+      "id": "b6918c6dd4c2c288",
+      "title": "நேரலை: 2-ஆம் கட்ட தவெக கல்வி விருது விழா - மாணவர்களுக்கு பரிசு வழங்கி சிறப்பிக்கும் முதலமைச்சர் விஜய் - ETV Bharat",
+      "content": "விஜய் அல்லது தவெக தொடர்பான கல்வி உதவி அல்லது மாணவர் பாராட்டு குறித்து மூல செய்தி வெளியாகியுள்ளது. விவரங்களுக்கு வெளியீட்டாளரின் இணைப்பைப் பார்க்கவும்.",
+      "category": "Education",
+      "date": "2026-11-27T11:18:20Z",
+      "publishedAt": "2026-11-27T11:18:20Z",
+      "retrievedAt": "2026-11-28T08:20:23Z",
+      "sourceName": "ETV Bharat",
+      "sourceUrl": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxNM0d6cGh5UzluTnBuYm1yWG53d3dZWnV2X3NEVUlpZWtYNHlnZklOWjF5RUkxUlRoSlpUdmphTWg5eDI5Z01iQWcxZDd2ZGJDbE9NN0pNVk81UDhyV0g5ZlRUcGk4YlI1NGIwN19kQlJ0UEk0Y25kUjBrck80Z3Ffa2R1U3NuMXZ4N1FMem5NYUY0MS1qdExDdmVHREd1T0kyUjlxTE5qVzRoeFo2Y1cyU0F3aWNJR2JtbDk4MlBFdERBUkHSAcgBQVVfeXFMTmZJVWJYeWVSRF8wbDQ2MTVtZEQ5VERadzM3QlRwTUxCVHM3ZU5aOEJqTWdwdDdMUG1aeC11RFBoTnFSTnQ5YzkxUUFERkFRUnlpS2RPd2Y0dTBCSDJTWi1fcWJZRFN0dXlDZ2liaWlrbV9WNEVDTGlBX3dNVVpDbUpMNHFHY1IxY1kwMjlvREJndUY0OXNadGZhUUx3MjgyMVZDV19tZE8wZWRZbkpVajBXVG80Q1Z3OUZaYjVza1psWmNtamctcWk?oc=5",
+      "language": "ta",
+      "status": "AUTO_SOURCE_LINKED",
+      "approvedAt": "2026-11-28T08:20:23.534315Z",
+      "summaryMethod": "ORIGINAL_TOPIC_TEMPLATE"
+    },
+    {
       "id": "9590e0229403fd33",
       "title": "தவெகவின் 2ம் கட்ட கல்வி விருது வழங்கும் விழா நேரலை - ETV Bharat",
       "content": "விஜய் அல்லது தவெக தொடர்பான கல்வி உதவி அல்லது மாணவர் பாராட்டு குறித்து மூல செய்தி வெளியாகியுள்ளது. விவரங்களுக்கு வெளியீட்டாளரின் இணைப்பைப் பார்க்கவும்.",
@@ -594,5 +624,5 @@
       "status": "RSS_EXCERPT"
     }
   ],
-  "generatedAt": "2026-11-27T08:58:56.903636Z"
+  "generatedAt": "2026-11-28T08:20:23.534315Z"
 }
